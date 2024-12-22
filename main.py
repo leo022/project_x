@@ -50,10 +50,13 @@ def main():
     
     # Generate and analyze a batch of alerts
     num_alerts = 15
-    print(f"Generating and analyzing {num_alerts} alerts...")
-    
+    print(f"Generating and analyzing {num_alerts} alerts...\n")
     alerts = simulator.generate_batch(num_alerts, include_similar=True)
     
+    # Print simulated alerts
+    # for alert in alerts:
+    #     print(alert + "\n")
+
     # Process each alert
     for alert in alerts:
         analysis = analyzer.analyze_alert(alert)
@@ -71,6 +74,7 @@ def main():
         print(f"\n{idx}. Frequency: {alert_info['frequency']}")
         print(f"   Alert: {alert_info['alert']}")
     
+    # Explain the score
     explain_scoring()
 
 if __name__ == "__main__":
