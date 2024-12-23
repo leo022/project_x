@@ -169,7 +169,7 @@ def main():
     parser = argparse.ArgumentParser(description='HIPS Alert Analysis System')
     parser.add_argument('--mode', choices=['batch', 'realtime'], default='batch',
                       help='Analysis mode: batch or realtime')
-    parser.add_argument('--count', type=int, default=10,
+    parser.add_argument('--count', type=int, default=15,
                       help='Number of alerts to generate in batch mode')
     parser.add_argument('--interval', type=float, default=2,
                       help='Interval between alerts in realtime mode (seconds)')
