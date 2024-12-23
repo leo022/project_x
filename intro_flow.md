@@ -18,14 +18,35 @@
 │                     Label-based Processing                       │
 │                  (syslog_vectorization.py)                       │
 │                                                                  │
-│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐          │
-│   │Type-specific│    │  TF-IDF     │    │ Similarity  │          │
-│   │  Vectors    │───▶│Vectorization│───▶│  Analysis   │          │
-│   └─────────────┘    └─────────────┘    └─────────────┘          │
-│                              │                                   │
-└──────────────────────────────┼───────────────────────────────────┘
-                              │
-                              ▼
+│   1. Alert Type Classification                                   │
+│      ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
+│      │MEMORY_ATTACK│    │PRIVILEGE_ESC│    │ACCESS_VIOL  │      │
+│      └─────────────┘    └─────────────┘    └─────────────┘      │
+│             │                  │                  │              │
+│             ▼                  ▼                  ▼              │
+│   2. Text Preprocessing                                         │
+│      ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
+│      │Remove Times │    │Standardize  │    │Extract Key  │      │
+│      │& IPs        │───▶│  Patterns   │───▶│  Features   │      │
+│      └─────────────┘    └─────────────┘    └─────────────┘      │
+│             │                                                    │
+│             ▼                                                    │
+│   3. Type-Specific Vectorization                                │
+│      ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
+│      │Separate     │    │  TF-IDF     │    │Feature      │      │
+│      │Type Vectors │───▶│Vectorization│───▶│  Matrix     │      │
+│      └─────────────┘    └─────────────┘    └─────────────┘      │
+│             │                                                    │
+│             ▼                                                    │
+│   4. Pattern Analysis                                           │
+│      ┌─────────────┐    ┌─────────────┐    ┌─────────────┐      │
+│      │Cosine       │    │Type-Specific│    │Pattern      │      │
+│      │Similarity   │───▶│  History    │───▶│  Matching   │      │
+│      └─────────────┘    └─────────────┘    └─────────────┘      │
+│             │                                                    │
+└─────────────┼────────────────────────────────────────────────────┘
+              │
+              ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                        Score Calculation                         │
 │                                                                  │
@@ -80,3 +101,26 @@ Key Features:
    - Type distribution
    - Pattern frequency
    - Trend analysis
+
+
+Label-based Processing Details:
+
+1. Alert Type Classification
+   - Categorizes incoming alerts by type
+   - Maintains separate processing pipelines
+   - Enables context-aware analysis
+
+2. Text Preprocessing
+   - Removes variable elements (timestamps, IPs)
+   - Standardizes alert patterns
+   - Extracts key features for analysis
+
+3. Type-Specific Vectorization
+   - Creates separate vector spaces per type
+   - Applies TF-IDF transformation
+   - Maintains type-specific feature matrices
+
+4. Pattern Analysis
+   - Calculates within-type similarities
+   - Tracks pattern history by type
+   - Identifies emerging patterns
