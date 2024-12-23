@@ -4,6 +4,7 @@ from datetime import datetime
 import time
 import argparse
 import sys
+import numpy as np
 
 class AlertMonitor:
     def __init__(self):
@@ -13,7 +14,7 @@ class AlertMonitor:
     def print_header(self):
         """Print application header"""
         print("\n" + "="*80)
-        print(f"🛡️  HIPS ALERT ANALYSIS SYSTEM")
+        print("🛡️  HIPS ALERT ANALYSIS SYSTEM")
         print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("="*80 + "\n")
 
@@ -34,12 +35,11 @@ class AlertMonitor:
             priority = "LOW"
             
         print("\n" + "="*80)
-        print(f"{priority_emoji[priority]} PRIORITY: {priority}")
+        print(f"{priority_emoji[priority]} PRIORITY: {priority} | Type: {alert['type']}")
         print("-"*80)
         
         # Alert Information
         print("📝 Alert Details:")
-        print(f"  • Type: {alert['type']}")
         print(f"  • Pattern: {alert['pattern']}")
         print(f"  • Process: {alert['process']} (PID: {alert['pid']})")
         print(f"  • Severity: {alert['severity']}")
@@ -49,37 +49,75 @@ class AlertMonitor:
         # Analysis Results
         print("\n📊 Risk Analysis:")
         print(f"  • Final Score: {analysis['score']:.3f}")
-        print(f"  • Type Risk: {analysis['type_score']:.3f}")
+        print(f"  • Type Base Score: {analysis['type_score']:.3f}")
         print(f"  • Severity Weight: {analysis['severity_score']:.3f}")
-        print(f"  • Occurrence: #{analysis['frequency']}")
+        print(f"  • Uniqueness Score: {analysis['uniqueness']:.3f}")
         print(f"  • Type Frequency: #{analysis['type_frequency']}")
         if 'similarity' in analysis:
-            print(f"  • Similarity: {analysis['similarity']:.3f}")
+            print(f"  • Similarity to Previous: {analysis['similarity']:.3f}")
         print("="*80)
 
-    def print_statistics(self, stats):
-        """Print analysis summary statistics"""
+    def print_type_statistics(self, stats):
+        """Print type-based analysis statistics"""
         print("\n" + "="*80)
-        print("📈 ANALYSIS SUMMARY")
+        print("📊 ALERT TYPE ANALYSIS")
         print("-"*80)
         
-        # Basic Stats
-        print(f"Total Alerts: {stats['total_alerts']}")
-        print(f"Unique Patterns: {stats['unique_alerts']}")
+        total_alerts = stats['total_alerts']
         
-        # Type Distribution
-        print("\n🔍 Alert Type Distribution:")
+        # Print distribution by type
+        print("\n🏷️  Alert Distribution by Type:")
         for type_stat in stats['type_distribution']:
-            percentage = (type_stat['frequency'] / stats['total_alerts']) * 100
-            bar = "█" * int(percentage/5)  # Visual bar
-            print(f"  {type_stat['alert_type']:<20} {type_stat['frequency']:>3} ({percentage:>5.1f}%) {bar}")
-        
-        # Severity Distribution
-        print("\n⚠️ Severity Distribution:")
-        for severity, count in stats['severity_distribution'].items():
-            percentage = (count / stats['total_alerts']) * 100
+            type_name = type_stat['alert_type']
+            count = type_stat['total_alerts']
+            unique = type_stat['unique_patterns']
+            ratio = type_stat['repetition_ratio']
+            
+            percentage = (count / total_alerts) * 100
             bar = "█" * int(percentage/5)
-            print(f"  {severity:<10} {count:>3} ({percentage:>5.1f}%) {bar}")
+            
+            print(f"\n{type_name}:")
+            print(f"  • Count: {count} ({percentage:.1f}%) {bar}")
+            print(f"  • Unique Patterns: {unique}")
+            print(f"  • Repetition Ratio: {ratio:.2f}")
+        
+        print("="*80)
+
+    def explain_scoring_system(self):
+        """Explain the label-based scoring system"""
+        print("\n" + "="*80)
+        print("🎯 LABEL-BASED SCORING SYSTEM")
+        print("="*80)
+
+        # Type Weights
+        print("\n1️⃣  TYPE-SPECIFIC BASE WEIGHTS (30%)")
+        print("-"*40)
+        for alert_type, weight in self.analyzer.type_weights.items():
+            print(f"  • {alert_type:<20} {weight:.2f}")
+
+        # Severity Weights
+        print("\n2️⃣  SEVERITY WEIGHTS (30%)")
+        print("-"*40)
+        for severity, weight in self.analyzer.severity_weights.items():
+            print(f"  • {severity:<10} {weight:.2f}")
+
+        # Uniqueness Scoring
+        print("\n3️⃣  UNIQUENESS SCORING (40%)")
+        print("-"*40)
+        print("Based on type-specific pattern analysis:")
+        print("  • Similarity Check: Within same alert type")
+        print("  • Frequency Impact: Logarithmic decay per type")
+        print("  • Uniqueness Formula: (similarity_factor + frequency_factor) / 2")
+        
+        print("\nExample Uniqueness Scores:")
+        print("  • First occurrence:          1.000")
+        print("  • Similar but different:     0.600")
+        print("  • Repeated pattern:          0.300")
+        print("  • Nearly identical:          0.150")
+        
+        print("\n📈 FINAL SCORE CALCULATION")
+        print("-"*40)
+        print("Score = (TypeWeight × 0.3) + (SeverityWeight × 0.3) + (Uniqueness × 0.4)")
         
         print("="*80)
 
@@ -90,22 +128,19 @@ class AlertMonitor:
         
         try:
             while True:
-                # Check if duration limit reached
                 if duration and (time.time() - start_time) > duration:
                     break
-                
-                # Generate and analyze new alert
+                    
                 alert = self.simulator.generate_alert()
                 analysis = self.analyzer.analyze_alert(alert)
                 
-                # Print analysis
                 self.print_alert_details(alert, analysis)
                 alert_count += 1
                 
                 # Print periodic statistics
                 if alert_count % 5 == 0:
                     stats = self.analyzer.get_statistics()
-                    self.print_statistics(stats)
+                    self.print_type_statistics(stats)
                 
                 time.sleep(interval)
                 
@@ -114,7 +149,7 @@ class AlertMonitor:
         finally:
             # Print final statistics
             stats = self.analyzer.get_statistics()
-            self.print_statistics(stats)
+            self.print_type_statistics(stats)
             print(f"\nTotal monitoring time: {time.time() - start_time:.1f} seconds")
             print(f"Alerts processed: {alert_count}")
 
@@ -128,64 +163,7 @@ class AlertMonitor:
             self.print_alert_details(alert, analysis)
         
         stats = self.analyzer.get_statistics()
-        self.print_statistics(stats)
-
-    def explain_scoring_system(self):
-        """Explain the alert scoring system and risk analysis"""
-        print("\n" + "="*80)
-        print("🎯 ALERT SCORING SYSTEM EXPLANATION")
-        print("="*80)
-
-        # Component 1: Type-based Scoring
-        print("\n1️⃣ TYPE-BASED SCORING (30% of final score)")
-        print("-"*40)
-        print("Different attack types have different base risk weights:")
-        type_weights = {
-            "MEMORY_ATTACK": "0.90 - Highest risk due to potential system compromise",
-            "PRIVILEGE_ESCALATION": "0.85 - Critical due to elevated access attempts",
-            "SYSTEM_TAMPERING": "0.75 - High risk system modifications",
-            "ACCESS_VIOLATION": "0.70 - Unauthorized access attempts",
-            "SUSPICIOUS_EXECUTION": "0.65 - Potentially malicious activity"
-        }
-        for type_name, description in type_weights.items():
-            print(f"  • {type_name:<20} | {description}")
-
-        # Component 2: Severity-based Scoring
-        print("\n2️⃣ SEVERITY-BASED SCORING (30% of final score)")
-        print("-"*40)
-        severity_weights = {
-            "Critical": "1.00 - Immediate action required",
-            "High": "0.80 - Urgent attention needed",
-            "Medium": "0.60 - Moderate risk level",
-            "Low": "0.30 - Minimal immediate risk"
-        }
-        for severity, description in severity_weights.items():
-            print(f"  • {severity:<10} | {description}")
-
-        # Component 3: Similarity Analysis
-        print("\n3️⃣ SIMILARITY ANALYSIS (20% of final score)")
-        print("-"*40)
-        print("Measures how unique an alert is compared to previous alerts:")
-        print("  • Unique alerts (similarity < 0.30)     → Higher score")
-        print("  • Similar alerts (0.30 < sim < 0.85)    → Reduced score")
-        print("  • Nearly identical (similarity > 0.85)   → Minimal score")
-        print("\nFormula: similarity_factor = 1 - similarity_score")
-
-        # Component 4: Frequency Analysis
-        print("\n4️⃣ FREQUENCY ANALYSIS (20% of final score)")
-        print("-"*40)
-        print("Reduces score for repeatedly seen alerts:")
-        print("Formula: frequency_factor = 1 / (1 + log(1 + occurrence_count))")
-        print("\nExample frequency penalties:")
-        frequencies = [(1, 1.000), (2, 0.630), (5, 0.386), (10, 0.292)]
-        for count, score in frequencies:
-            print(f"  • Occurrence #{count:<2} → Score factor: {score:.3f}")
-
-        # Final Score Calculation
-        print("\n🎯 FINAL SCORE CALCULATION")
-        print("-"*40)
-        print("Final score = 0.30 * type_score + 0.30 * severity_score + 0.20 * similarity_factor + 0.20 * frequency_factor")
-        print("="*80)
+        self.print_type_statistics(stats)
 
 def main():
     parser = argparse.ArgumentParser(description='HIPS Alert Analysis System')
