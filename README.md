@@ -1,198 +1,170 @@
-# project_x
-I'll help you create a clear documentation of how the alert scoring system works. Let's add this as a docstring to the `analyze_alert` method:
+# 🛡️ HIPS Alert Analysis System
 
-```python:secops/syslog_vectorization.py
-def analyze_alert(self, alert):
-    """
-    Analyzes a new alert and calculates its significance score based on similarity and frequency.
-  
-    The scoring system works as follows:
-  
-    1. Similarity Factor:
-        - Compares the new alert with historical alerts using cosine similarity
-        - If similarity > threshold (0.85), similarity_factor = 0
-        - Otherwise, similarity_factor = 1 - similarity_score
-        - Higher uniqueness (lower similarity) results in a higher score
-  
-    2. Frequency Factor:
-        - Uses a logarithmic decay: 1 / (1 + log(1 + frequency))
-        - First occurrence: frequency=1, factor=0.5
-        - Second occurrence: frequency=2, factor=0.37
-        - Third occurrence: frequency=3, factor=0.31
-        - Repeated alerts get progressively lower scores
-  
-    3. Final Score Calculation:
-        - final_score = (frequency_factor + similarity_factor) / 2
-        - Range: 0.0 to 1.0
-        - Higher scores indicate more significant alerts
-        - Score interpretation:
-            * 0.8 - 1.0: High priority (unique, first-time alerts)
-            * 0.4 - 0.7: Medium priority (somewhat similar or repeated alerts)
-            * 0.0 - 0.3: Low priority (very similar or frequent alerts)
-  
-    Args:
-        alert (str): The alert message to analyze
-  
-    Returns:
-        dict: Analysis results containing:
-            - score: Final calculated score (0.0 to 1.0)
-            - frequency: Number of times this alert has been seen
-            - similarity: Cosine similarity to most similar previous alert
-    """
-    if not self.alert_history:
-        self.alert_history.append(alert)
-        self.alert_vectors = self.vectorize_alerts(self.alert_history)
-        self.alert_counts[alert] += 1
-        return {'score': 1.0, 'frequency': 1}
-  
-    similarity_score = self.calculate_similarity_score(alert)
-    self.alert_history.append(alert)
-    self.alert_vectors = self.vectorize_alerts(self.alert_history)
-  
-    # Update frequency counter
-    self.alert_counts[alert] += 1
-  
-    # Calculate normalized score (lower for similar/frequent alerts)
-    frequency_factor = 1 / (1 + np.log1p(self.alert_counts[alert]))
-    similarity_factor = 1 - similarity_score if similarity_score < self.similarity_threshold else 0
-    final_score = (frequency_factor + similarity_factor) / 2
-  
-    return {
-        'score': final_score,
-        'frequency': self.alert_counts[alert],
-        'similarity': similarity_score
-    }
+A sophisticated Host-based Intrusion Prevention System (HIPS) alert analyzer that uses machine learning and natural language processing to prioritize security alerts based on their significance and patterns.
+
+## 📋 Overview
+
+This system helps security teams combat alert fatigue by intelligently scoring and prioritizing HIPS alerts using:
+- Text vectorization and similarity analysis
+- Frequency-based pattern detection
+- Type-specific risk weighting
+- Severity-based prioritization
+
+### 🎯 Key Features
+
+- **Intelligent Alert Scoring**: Combines multiple factors to calculate alert significance
+- **Real-time Monitoring**: Continuous analysis of incoming alerts
+- **Pattern Detection**: Identifies similar alerts and emerging patterns
+- **Statistical Analysis**: Provides comprehensive alert statistics and distributions
+- **Flexible Deployment**: Supports both batch and real-time analysis modes
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+```bash
+python 3.8+
+numpy
+scikit-learn
+pandas
 ```
 
-And let's add a visual example to the main script to demonstrate the scoring:
+### Installation
 
-```python:main.py
-def explain_scoring():
-    """Explains the alert scoring system with examples"""
-    print("\n📊 ALERT SCORING SYSTEM EXPLANATION 📊")
-    print("="*80)
-    print("\nThe alert scoring system combines two factors:")
-  
-    print("\n1. SIMILARITY FACTOR")
-    print("-"*40)
-    print("Measures how unique an alert is compared to previous alerts:")
-    print("• Very unique (similarity < 0.3):   similarity_factor ≈ 0.7-1.0")
-    print("• Somewhat unique (0.3-0.7):        similarity_factor ≈ 0.3-0.7")
-    print("• Very similar (> 0.85):            similarity_factor = 0.0")
-  
-    print("\n2. FREQUENCY FACTOR")
-    print("-"*40)
-    print("Reduces score for repeatedly seen alerts:")
-    print("• First occurrence:      factor = 0.500")
-    print("• Second occurrence:     factor = 0.370")
-    print("• Third occurrence:      factor = 0.310")
-    print("• Fourth occurrence:     factor = 0.274")
-  
-    print("\n3. FINAL SCORE")
-    print("-"*40)
-    print("Average of similarity and frequency factors:")
-    print("• 0.8 - 1.0: High priority   (unique, first-time alerts)")
-    print("• 0.4 - 0.7: Medium priority (somewhat similar or repeated)")
-    print("• 0.0 - 0.3: Low priority    (very similar or frequent)")
-    print("="*80)
-
-def main():
-    # Add this line at the start of your main function
-    explain_scoring()
-  
-    # ... rest of your main function code ...
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/hips-alert-analyzer.git
+cd hips-alert-analyzer
 ```
 
-This documentation:
-
-1. Explains each component of the scoring system
-2. Provides concrete examples of how scores are calculated
-3. Shows the mathematical formulas used
-4. Gives interpretation guidelines for the final scores
-
-The scoring system is designed to prioritize:
-
-* New, unique alerts (high scores)
-* Over similar or frequently occurring alerts (low scores)
-
-This helps security analysts focus on potentially new threats while reducing alert fatigue from repeated or similar warnings.
-
-
-Here's an ASCII diagram explaining the project structure and flow:
-
-```plaintext
-┌──────────────────────────────────────────────────────────────────────┐
-│                        HIPS Alert Analysis System                    │
-└──────────────────────────────────────────────────────────────────────┘
-                                   │
-                 ┌─────────────────┴────────────────┐
-                 ▼                                   ▼
-┌────────────────────────┐               ┌─────────────────────────┐
-│   Alert Simulator      │               │    Alert Analyzer       │
-│  (alert_simulator.py)  │ ─generates─►  │(syslog_vectorization.py)│
-└────────────────────────┘    alerts     └─────────────────────────┘
-         │                                         │
-         │                                         │
-         ▼                                         ▼
-┌────────────────────────┐               ┌────────────────────────┐
-│    Generated Data      │               │    Analysis Process    │
-├────────────────────────┤               ├────────────────────────┤
-│ • Timestamps           │               │ 1. Preprocess Alert    │
-│ • Attack Types         │               │    • Remove timestamps │
-│ • Process Names        │               │    • Normalize IPs     │
-│ • Severity Levels      │               │                        │
-│ • Source IPs           │               │ 2. Vectorize Text      │
-│ • Process IDs          │               │    • TF-IDF            │
-└────────────────────────┘               │    • N-grams           │
-                                         │                        │
-                                         │ 3. Calculate Score     │
-                                         │    ┌────────────────┐  │
-                                         │    │ Final Score    │  │
-                                         │    │ = (A + B) / 2  │  │
-                                         │    └────────────────┘  │
-                                         │           ▲            │
-                                         │     ┌─────┴─────┐      │
-                                         │     ▼           ▼      │
-                                         │   Factor A   Factor B  │
-                                         │  Similarity  Frequency │
-                                         └────────────────────────┘
-                                                   │
-                                                   ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                           Output Results                             │
-├──────────────────────────────────────────────────────────────────────┤
-│ • Alert Details                                                      │
-│ • Similarity Scores                                                  │
-│ • Frequency Counts                                                   │
-│ • Priority Score                                                     │
-│ • Statistical Summary                                                │
-└──────────────────────────────────────────────────────────────────────┘
-
-Project Structure:
-└── project_root/
-    ├── secops/
-    │   ├── __init__.py
-    │   ├── alert_simulator.py
-    │   └── syslog_vectorization.py
-    ├── main.py
-    └── setup.py
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
 ```
 
-This diagram shows:
+### Usage
 
-1. The main components of the system
-2. The data flow between components
-3. The alert generation process
-4. The analysis pipeline
-5. The scoring calculation
-6. The project file structure
+1. **Show Scoring System Explanation**:
+```bash
+python main.py --mode explain
+```
 
-The system works by:
+2. **Batch Analysis**:
+```bash
+python main.py --mode batch --count 15
+```
 
-1. Generating synthetic HIPS alerts with realistic patterns
-2. Processing these alerts through the analyzer
-3. Computing similarity and frequency metrics
-4. Producing a final priority score
-5. Providing detailed analysis and statistics
+3. **Real-time Monitoring**:
+```bash
+python main.py --mode realtime --interval 3
+```
 
-The scoring system combines similarity (how unique the alert is) and frequency (how often it's seen) to help prioritize which alerts need immediate attention.
+## 🎯 Alert Scoring System
+
+The system uses a sophisticated scoring algorithm that considers multiple factors:
+
+### 1. Type-based Scoring (30%)
+- MEMORY_ATTACK: 0.90
+- PRIVILEGE_ESCALATION: 0.85
+- SYSTEM_TAMPERING: 0.75
+- ACCESS_VIOLATION: 0.70
+- SUSPICIOUS_EXECUTION: 0.65
+
+### 2. Severity-based Scoring (30%)
+- Critical: 1.00
+- High: 0.80
+- Medium: 0.60
+- Low: 0.30
+
+### 3. Similarity Analysis (20%)
+- Measures uniqueness compared to previous alerts
+- Higher scores for unique alerts
+- Reduces scores for similar patterns
+
+### 4. Frequency Analysis (20%)
+- Applies logarithmic decay for repeated alerts
+- Helps identify emerging patterns vs. noise
+
+## 📊 Priority Levels
+
+- 🔴 **HIGH** (Score > 0.70)
+  - Requires immediate attention
+  - New or critical threats
+
+- 🟡 **MEDIUM** (Score 0.40 - 0.70)
+  - Should be investigated soon
+  - Potential threats or recurring critical patterns
+
+- 🟢 **LOW** (Score < 0.40)
+  - Routine monitoring
+  - Known patterns or low-risk alerts
+
+## 📁 Project Structure
+
+```
+project_root/
+├── secops/
+│   ├── __init__.py
+│   ├── alert_simulator.py    # Alert generation and simulation
+│   └── syslog_vectorization.py  # Core analysis engine
+├── main.py                  # Main application entry point
+├── requirements.txt         # Project dependencies
+└── README.md               # This file
+```
+
+## 🔧 Configuration
+
+Key parameters that can be tuned:
+
+- `similarity_threshold`: 0.85 (default)
+- Alert type weights
+- Severity weights
+- Component weight distribution
+
+## 📈 Example Output
+
+```
+🛡️ HIPS ALERT ANALYSIS SYSTEM
+========================================
+🔴 PRIORITY: HIGH
+----------------------------------------
+📝 Alert Details:
+  • Type: MEMORY_ATTACK
+  • Pattern: Buffer Overflow Attempt
+  • Process: svchost.exe (PID: 1234)
+  • Severity: Critical
+  • Source IP: 192.168.1.100
+  • Timestamp: 2024-01-20 15:30:45
+
+📊 Risk Analysis:
+  • Final Score: 0.850
+  • Type Risk: 0.900
+  • Severity Weight: 1.000
+  • Occurrence: #1
+  • Type Frequency: #1
+  • Similarity: 0.150
+========================================
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📝 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- Inspired by real-world security operations challenges
+- Built with modern Python libraries and best practices
+- Designed for security analysts and SOC teams
+
+## 📞 Contact
+
+For questions and feedback:
+- Email: your.email@example.com
+- GitHub Issues: [Project Issues Page]
+
+---
+Built with ❤️ for the Security Community
