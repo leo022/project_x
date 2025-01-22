@@ -3,39 +3,41 @@ from secops.syslog_vectorization import SyslogAlertAnalyzer
 from datetime import datetime
 import time
 import argparse
-import sys
-import numpy as np
+from typing import Dict, Optional
 
 class AlertMonitor:
     def __init__(self):
         self.simulator = HIPSAlertSimulator()
         self.analyzer = SyslogAlertAnalyzer()
         
-    def print_header(self):
+        # Cache emoji mappings
+        self._priority_emoji = {
+            "HIGH": "🔴",
+            "MEDIUM": "🟡",
+            "LOW": "🟢"
+        }
+        
+    def _get_priority(self, score: float) -> str:
+        """Determine priority level based on score"""
+        if score > 0.7:
+            return "HIGH"
+        elif score > 0.4:
+            return "MEDIUM"
+        return "LOW"
+
+    def print_header(self) -> None:
         """Print application header"""
         print("\n" + "="*80)
         print("🛡️  HIPS ALERT ANALYSIS SYSTEM")
         print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("="*80 + "\n")
 
-    def print_alert_details(self, alert, analysis):
+    def print_alert_details(self, alert: Dict, analysis: Dict) -> None:
         """Print detailed analysis of a single alert"""
-        priority_emoji = {
-            "HIGH": "🔴",
-            "MEDIUM": "🟡",
-            "LOW": "🟢"
-        }
+        priority = self._get_priority(analysis['score'])
         
-        # Determine priority level
-        if analysis['score'] > 0.7:
-            priority = "HIGH"
-        elif analysis['score'] > 0.4:
-            priority = "MEDIUM"
-        else:
-            priority = "LOW"
-            
         print("\n" + "="*80)
-        print(f"{priority_emoji[priority]} PRIORITY: {priority} | Type: {alert['type']}")
+        print(f"{self._priority_emoji[priority]} PRIORITY: {priority} | Type: {alert['type']}")
         print("-"*80)
         
         # Alert Information
@@ -57,7 +59,7 @@ class AlertMonitor:
             print(f"  • Similarity to Previous: {analysis['similarity']:.3f}")
         print("="*80)
 
-    def print_type_statistics(self, stats):
+    def print_type_statistics(self, stats: Dict) -> None:
         """Print type-based analysis statistics"""
         print("\n" + "="*80)
         print("📊 ALERT TYPE ANALYSIS")
@@ -83,7 +85,7 @@ class AlertMonitor:
         
         print("="*80)
 
-    def explain_scoring_system(self):
+    def explain_scoring_system(self) -> None:
         """Explain the label-based scoring system"""
         print("\n" + "="*80)
         print("🎯 LABEL-BASED SCORING SYSTEM")
@@ -118,10 +120,9 @@ class AlertMonitor:
         print("\n📈 FINAL SCORE CALCULATION")
         print("-"*40)
         print("Score = (TypeWeight × 0.3) + (SeverityWeight × 0.3) + (Uniqueness × 0.4)")
-        
         print("="*80)
 
-    def simulate_realtime(self, interval=2, duration=None):
+    def simulate_realtime(self, interval: float = 2, duration: Optional[float] = None) -> None:
         """Simulate real-time alert monitoring"""
         start_time = time.time()
         alert_count = 0
@@ -153,7 +154,7 @@ class AlertMonitor:
             print(f"\nTotal monitoring time: {time.time() - start_time:.1f} seconds")
             print(f"Alerts processed: {alert_count}")
 
-    def batch_analysis(self, num_alerts):
+    def batch_analysis(self, num_alerts: int) -> None:
         """Perform batch analysis of alerts"""
         print(f"\nGenerating and analyzing {num_alerts} alerts...")
         alerts = self.simulator.generate_batch(num_alerts, include_similar=True)
