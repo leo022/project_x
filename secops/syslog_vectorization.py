@@ -60,37 +60,29 @@ class SyslogAlertAnalyzer:
         
         processed_alerts = [self.preprocess_alert(alert) for alert in alerts]
         
-        # Fit vectorizer only once per alert type
-        if alert_type not in self.alert_vectors:
+        # Only fit the vectorizer once when we first see any alert type
+        if not hasattr(self, 'is_fitted'):
             try:
-                self.vectorizer = TfidfVectorizer(
-                    analyzer='word',
-                    token_pattern=r'\b\w+\b',
-                    ngram_range=(1, 2),
-                    max_features=10000,
-                    min_df=1,
-                    max_df=1.0
-                )
                 self.vectorizer.fit(processed_alerts)
+                self.is_fitted = True
             except ValueError as e:
-                print(f"Vectorization error: {e}")
-                return None
-            
+                # Fallback for small alert sets
+                self.vectorizer.min_df = 1
+                self.vectorizer.fit(processed_alerts)
+                self.is_fitted = True
+        
+        # Always use transform instead of fit_transform after initial fit
         return self.vectorizer.transform(processed_alerts)
 
     def calculate_similarity_score(self, new_alert, alert_type):
         """Optimized similarity calculation"""
         if alert_type not in self.alert_vectors or self.alert_vectors[alert_type] is None:
             return 0.0
-        
-        try:
-            new_vector = self.vectorizer.transform([self.preprocess_alert(new_alert)])
-            # Use numpy's optimized operations
-            similarities = cosine_similarity(new_vector, self.alert_vectors[alert_type])
-            return float(np.max(similarities))  # Convert to float for better serialization
-        except (ValueError, AttributeError) as e:
-            print(f"Similarity calculation error: {e}")
-            return 0.0
+            
+        new_vector = self.vectorizer.transform([self.preprocess_alert(new_alert)])
+        # Use numpy's optimized operations
+        similarities = cosine_similarity(new_vector, self.alert_vectors[alert_type])
+        return float(np.max(similarities))  # Convert to float for better serialization
 
     def calculate_uniqueness_score(self, similarity_score, frequency):
         """Calculate uniqueness score based on similarity and frequency"""
